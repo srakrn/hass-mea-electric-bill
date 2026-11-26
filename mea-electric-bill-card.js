@@ -444,7 +444,8 @@ class MeaElectricBillCard extends HTMLElement {
     const subtotal = energyCharge + serviceCharge + ftCharge;
     const vatAmount = subtotal * (vat / 100);
     lines.push([`VAT (${vat}%)`, vatAmount]);
-    const total = subtotal + vatAmount;
+    const exportRevenue = this._exportedUnits == null ? null : this._exportedUnits * cfg.export_rate;
+    const total = subtotal + vatAmount - (exportRevenue ?? 0);
 
     let savings = null;
     if (this._selfConsumed) {
@@ -457,7 +458,7 @@ class MeaElectricBillCard extends HTMLElement {
       };
     }
 
-    return { units, lines, total, savings };
+    return { units, lines, total, savings, exportRevenue };
   }
 
   _render() {
@@ -491,7 +492,7 @@ class MeaElectricBillCard extends HTMLElement {
         </div>`
       : "";
 
-    let exportBlock = "";
+    let exportRow = "";
     if (this._config.entities.export) {
       const units = this._exportedUnits;
       let label = "Estimated export revenue";
@@ -499,13 +500,10 @@ class MeaElectricBillCard extends HTMLElement {
       if (units === null) {
         value = "No export data";
       } else if (units !== undefined) {
-        label += ` (${units.toFixed(2)} kWh)`;
-        value = `${(units * this._config.export_rate).toFixed(2)} ฿`;
+        label += ` (${units.toFixed(2)} units)`;
+        value = `${(-bill.exportRevenue).toFixed(2)} ฿`;
       }
-      exportBlock = `<div class="savings">
-        <span>${label}</span>
-        <span class="num">${value}</span>
-      </div>`;
+      exportRow = `<tr><td>${label}</td><td class="num">${value}</td></tr>`;
     }
 
     this.shadowRoot.innerHTML = `
@@ -560,10 +558,10 @@ class MeaElectricBillCard extends HTMLElement {
         <div class="tabs">${tabs}</div>
         <table>
           ${rows}
+          ${exportRow}
           <tr class="total-row"><td>Estimated total</td><td class="num">${bill.total.toFixed(2)} ฿</td></tr>
         </table>
         ${savingsBlock}
-        ${exportBlock}
       </ha-card>
     `;
 

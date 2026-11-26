@@ -123,10 +123,15 @@ for (const scheme of ["normal", "tou"]) {
 
     const card = createCard(hass, { scheme, entities: { ...solar, export: gridExport } });
     await setImmediate();
-    assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(12\.00 kWh\)/);
-    assert.match(card.shadowRoot.innerHTML, /26\.40 ฿/);
+    const netBill = legacy._calcBill().total - 26.40;
+    assert.match(
+      card.shadowRoot.innerHTML,
+      /<tr><td>Estimated export revenue \(12\.00 units\)<\/td><td class="num">-26\.40 ฿<\/td><\/tr>\s*<tr class="total-row">/
+    );
+    assert.ok(card.shadowRoot.innerHTML.includes(
+      `<td>Estimated total</td><td class="num">${netBill.toFixed(2)} ฿</td>`
+    ));
     assert.equal(card._calcBill().units, 12);
-    assert.equal(card._calcBill().total, legacy._calcBill().total);
     assert.equal(card._calcBill().savings.units, 5);
     assert.equal(card._calcBill().savings.total, legacy._calcBill().savings.total);
     const request = hass.requests.find(({ statistic_ids }) => statistic_ids.includes(gridExport));
@@ -148,8 +153,8 @@ test("export follows each selected period and applies the configured rate to raw
   ]) {
     card._setPeriod(period);
     await setImmediate();
-    assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(11\.00 kWh\)/);
-    assert.match(card.shadowRoot.innerHTML, /19\.25 ฿/);
+    assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(11\.00 units\)/);
+    assert.match(card.shadowRoot.innerHTML, />-19\.25 ฿<\/td>/);
     for (const entity of [gridImport, gridExport]) {
       assert.equal(hass.requests.findLast(({ statistic_ids }) => statistic_ids.includes(entity)).start_time, start);
       assert.equal(hass.historyRequests.findLast((request) => request.entity === entity).start, start);
@@ -163,10 +168,18 @@ test("the card distinguishes missing export data from zero revenue", async () =>
   const zero = createCard(recorder({ histories: { [gridExport]: history(10, 15) } }), options);
   await setImmediate();
   assert.match(missing.shadowRoot.innerHTML, /No export data/);
-  assert.match(zero.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 kWh\)/);
-  assert.match(zero.shadowRoot.innerHTML, /0\.00 ฿/);
+  assert.match(zero.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 units\)/);
+  assert.match(zero.shadowRoot.innerHTML, />0\.00 ฿<\/td>/);
+  assert.equal(missing._calcBill().total, zero._calcBill().total);
   assert.throws(() => createCard(recorder(), { ...options, export_rate: -1 }), /export_rate/);
   assert.throws(() => createCard(recorder(), { ...options, export_rate: "invalid" }), /export_rate/);
+});
+
+test("the net bill can be negative when export revenue exceeds the import bill", async () => {
+  const hass = recorder({ histories: { [gridExport]: history(10, 30) } });
+  const card = createCard(hass, { vat: 0, entities: { export: gridExport } });
+  await setImmediate();
+  assert.match(card.shadowRoot.innerHTML, /<td>Estimated total<\/td><td class="num">-19\.38 ฿<\/td>/);
 });
 
 test("a late response from the old period cannot replace the new export estimate", async () => {
@@ -181,11 +194,11 @@ test("a late response from the old period cannot replace the new export estimate
   await setImmediate();
   card._setPeriod("day");
   await setImmediate();
-  assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 kWh\)/);
+  assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 units\)/);
 
   oldResponse.resolve(history(10, 80));
   await setImmediate();
-  assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 kWh\)/);
+  assert.match(card.shadowRoot.innerHTML, /Estimated export revenue \(5\.00 units\)/);
 });
 
 test("the visual editor saves the optional sensor and its rate", () => {

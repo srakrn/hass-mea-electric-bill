@@ -97,10 +97,11 @@ entities:
 ```
 
 Use a cumulative kWh sensor that measures energy delivered to the grid, such as
-the sensor configured as **Energy exported to grid** in Home Assistant. Export
-revenue equals exported kWh × `export_rate`. The card displays it separately
-from the estimated import bill and solar self-consumption savings. Usage is
-estimated from hourly Recorder statistics and recent sensor history.
+the sensor configured as **Energy exported to grid** in Home Assistant. The
+card shows estimated export revenue (exported kWh × `export_rate`) as a
+deduction above **Estimated total**. The total is the estimated import bill
+including VAT minus estimated export revenue. Usage is estimated from hourly
+Recorder statistics and recent sensor history.
 
 Thailand's 2569 (2026) residential rooftop solar buyback program pays
 **฿2.20/kWh for 10 years** for surplus energy delivered to the grid, with up to
