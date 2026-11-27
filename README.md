@@ -37,6 +37,10 @@ MEA residential rate schemes and a per-user billing cutoff day.
    `Settings → Dashboards → Resources → /hacsfiles/hass-mea-electric-bill/mea-electric-bill-card.js` (JavaScript Module).
 4. Add the card to a dashboard, either via the visual editor or YAML.
 
+HACS uses the published GitHub Release tag as the installed version. To switch
+from a commit build, open the card's repository in HACS, choose **Redownload**,
+and select a published version.
+
 ## Configuration
 
 ### Normal (tiered) scheme
@@ -149,3 +153,19 @@ rates:
   rates against your actual MEA bill, since Ft is revised quarterly.
 - This card is presentation/estimation only — it does not modify your actual
   bill or any integration state.
+
+## Publishing a release
+
+After the release changes are merged into `main`, choose the next version.
+Use a patch version for fixes, a minor version for compatible features, and a
+major version for breaking changes. Push an annotated tag from `origin/main`,
+for example:
+
+```sh
+git fetch origin main
+git tag -a v1.1.0 origin/main -m "Release v1.1.0"
+git push origin refs/tags/v1.1.0
+```
+
+GitHub Actions runs **Card checks** on the tagged commit before publishing the
+release with generated notes and `mea-electric-bill-card.js` attached for HACS.
